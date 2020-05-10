@@ -1,0 +1,15 @@
+# Static information about the filesystems.
+# See fstab(5) for details.
+
+# <file system> 	<dir> 				<type> 		<options> 		<dump> <pass>
+# UUID=7ce783cf-3aa4-499e-a222-c1c3c0ee775f LABEL=arch
+/dev/sda1           	/         			ext4      	rw,relatime		0 	1
+
+# UUID=6bd25af5-9bc2-4208-9f4c-04459ee75de5
+/dev/sda2           	none      			swap      	defaults  		0 	0
+
+# UUID=84016de2-f86a-4d72-8619-dfcdc210b37d
+/dev/sda3           	/run/media/eldermf/virus_800   	ext4      	defaults,noatime  	0 	0
+
+# UUID=0d3de3d8-c596-4b13-8e0b-16d2ef1fe37f
+/dev/sdb1           	/run/media/eldermf/virus_500    ext4      	defaults,noatime  	0 	2

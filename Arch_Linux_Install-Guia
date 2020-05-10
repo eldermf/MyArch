@@ -1,0 +1,233 @@
+# Pequeno Tutorial de Instalação PESSOAL do sistema ARCH Linux
+#
+# EU USO ESSE GUIA PARA MEU USO PRÓPRIO (SEI O QUE ESTOU FAZENDO) NÃO ME RESPONSABILIZO POR NADA.
+# UM GUIA DE INSTALAÇÃO DO ARCH, RECOMENDO LER A WIKI OFICIAL DA DISTRO, NÃO ME RESPONSABILIZO POR DANDOS
+# WIKI: https://wiki.archlinux.org/index.php/Installation_guide_(Portugu%C3%AAs)
+
+➜ Layout teclado (ABNT2)
+loadkeys br-abnt2
+
+➜ Mudar o tamanho da fonte (OPCIONAL)
+setfont lat4-19
+
+➜ Mudar idioma da instalação (OPCIONAL)
+nano /etc/locale.gen
+
+➜ Descomentar a linha:
+#pt_BR.UTF-8
+
+➜ Execute os comandos:
+locale-gen
+export LANG=pt_BR.UTF-8
+
+➜ Atualizar base de dados
+pacman -Syy
+
+➜ Suporte para chaves (OPCIONAL)
+pacman -S archlinux-keyring
+
+➜ Separar as partições
+cfdisk
+
+➜ Formatar as partições
+mkfs.vfat -F32 # Formatar BOOT UEFI
+mkfs.ext4 # Formatar partição
+mkswpap # Formatar swap (caso tenha)
+
+➜ Montar partições
+mount # Montar as partições
+swapon # Montar swap (caso tenha)
+mkdir -p /mnt/boot/efi && mount /dev/sdaX /mnt/boot/efi
+
+➜ Instalar sistema base
+pacstrap /mnt base base-devel linux-firmware dhcpcd nano vim  - (base-devel é opcional, mas eu recomendo instalar para pode usar os pacotes de compilação)
+
+➜ Gerar FSTAB
+genfstab -p /mnt >> /mnt/etc/fstab
+
+➜ Entrar no chroot
+arch-chroot /mnt
+
+# Escolha suas opções
+
+# INTERNET
+# OPÇÃO 1 - DHCPCD
+pacman -S dhcpcd
+systemctl enable dhcpcd
+
+# Opção 2 - NetworkManager
+pacman -S networkmanager
+systemctl enable NetworkManager
+
+# EDITORES
+# OPÇÃO 1 - VIM EDITOR
+pacman -S vim
+
+OBS: Se já colocou o editor no pacstrap, não precisa baixa-lo novamente.
+
+# OPÇÃO 2 - NANO EDITOR
+pacman -S nano
+
+➜ Setar o fuso horário do sistema (OPCIONAL)
+ln -sf /usr/share/zoneinfo/America/Recife /etc/localtime
+
+➜ Setar o horário no sistema
+hwclock --systohc
+
+➜ Time Date
+timedatectl set-ntp true
+
+➜ Mudando o idioma do SISTEMA (OPCIONAL)
+vim /etc/locale.gen
+
+➜ Descomentar linha:
+#pt_BR.UTF-8
+
+➜ Executar comandos
+locale-gen
+echo LANG=pt_BR.UTF-8 > /etc/locale.conf
+export LANG=pt_BR.UTF-8
+
+➜ Configurar o teclado para subir em PT-BR
+echo KEYMAP=br-abnt2 > /etc/vconsole.conf
+
+➜ Colocar nome host
+echo LOCALHOST > /etc/hostname
+
+➜ Baixar kernels (sua preferência)
+pacman -S linux linux-headers ➜ Kernel Stable (default)
+pacman -S linux-hardened linux-hardened-headers ➜ Kernel focado na segurança
+pacman -S linux-lts linux-lts-headers ➜ Kernel a longo prazo
+pacman -S linux-zen linux-zen-headers ➜ Kernel focado em desempenho
+
+➜ Configurar repositório
+vim /etc/pacman.conf
+
+➜ Descomentar linha:
+#multilib
+#incluide
+
+➜ Sincronizar repositórios
+pacman -Syy
+
+➜ Senha root
+passwd
+
+➜ Criar user
+useradd -m -g users -G wheel,audio,video,daemon,dbus,disk,rfkill,games,power,lp,optical,scanner,storage,input -s /bin/bash USER
+
+➜ Criar senha para o user
+passwd USER
+
+➜ Editar prioridade SUDO
+vim /etc/sudoers
+
+➜ Descomentar linha:
+# %wheel ALL=(ALL) ALL
+
+➜ Baixar e instalar o GRUB
+# LEGACY
+pacman -S grub
+grub-install /dev/sda
+----------------------------------
+# UEFI
+pacman -S grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Grub_Arch --recheck
+
+➜ Caso tenha outro SO instalado (ntfs-3g é bom para reconhecer o windows)
+pacman -S os-prober ntfs-3g --noconfirm
+
+➜ Atualize o GRUB
+grub-mkconfig -o /boot/grub/grub.cfg
+
+# REBOOTA O SISTEMA E TIRA A MIDIA
+
+# Notebooks para se conectar a internet via wifi usa o comando:
+nmtui
+
+➜ Identificar a VGA:
+lspci | grep VGA
+
+➜ Baixar GPU
+➜ Radeon - GPUs mais antigas (AMD)
+sudo pacman -S xf86-video-ati
+
+➜ AMDGPU - GPUs mais novas (AMD)
+sudo pacman -S xf86-video-amdgpu
+
+➜ Nvidia
+sudo pacman -S nvidia
+
+➜ GPU INTEL
+sudo pacman -S xf86-video-intel
+
+➜ GPU Genérico
+sudo pacman -S xf86-video-vesa
+
+➜ GPU VB - Virtual Box
+sudo pacman -S virtualbox-guest-utils
+
+➜ Baixar alguns pacotes (Xorg-xinit é necessario se quiser iniciar o sistema pelo o startx)
+sudo pacman -S xorg xorg-xinit ttf-fira-code noto-fonts-emoji pulseaudio-alsa pavucontrol
+
+➜ Baixando i3wm
+sudo pacman -S i3
+#(Opções: 1,4)
+
+➜ Baixando Bspwm
+sudo pacman -S bspw
+sudo pacman -S sxhkd
+
+# Bspwm
+mkdir -p ~/.config/{bspwm,sxhkd}
+cp /usr/local/share/doc/bspwm/examples/bspwmrc ~/.config/bspwm/
+cp /usr/local/share/doc/bspwm/examples/sxhkdrc ~/.config/sxhkd/
+
+OU
+
+cp /usr/share/doc/bspwm/examples/bspwmrc ~/.config/bspwm/
+cp /usr/share/doc/bspwm/examples/sxhkdrc ~/.config/sxhkd/
+
+chmod u+x ~/.config/bspwm/bspwmrc # OPCIONAL
+
+➜ Pacotes necessarios (OPCIONAL)
+sudo pacman -S dmenu pacman-contrib rxvt-unicode feh viewnior imagemagick w3m lxappearance git wget howl thunar tumbler firefox-i18n-pt-br scrot flameshot numlockx python-pip
+
+➜ Algunas DE's:
+
+➜ Baixando Plasma
+sudo pacman -S plasma # Plasma Completo
+sudo pacman -S plasma-desktop # Plasma Minimal
+
+➜ Baixando XFCE
+sudo pacman -S xfce4 # XFCE minimal
+sudo pacman -S xfce4-goodies # XFCE com alguns pacotes integrados
+
+# NOTE: If you have an Intel GPU, make sure you are not using xf86-video-intel with Cinnamon
+as it may freeze at random times otherwise, but you can still move the mouse.
+Use the modesetting driver instead by removing xf86-video-intel (KDE also recommends this).
+
+# modesetting ➜ https://jlk.fjfi.cvut.cz/arch/manpages/man/modesetting.4
+
+➜ Baixando Cinnamon
+sudo pacman -S cinnamon # Interface do Cinnamon (OBS: ESSA INTERFACE VEM SEM TERMINAL BAIXE UM)
+sudo pacman -S xfce4-terminal # Terminal
+
+➜ Baixando Deepin
+sudo pacman -S deepin deepin-extra # Deepin com alguns pacotes integrados
+
+➜ Baixando Mate
+sudo pacman -S mate mate-extra # Mate com alguns pacotes integrados
+
+➜ Tela de login - DM (Display Manager) (Opcional)
+sudo pacman -S lxdm --noconfirm
+systemctl enable lxdm.service
+
+➜ Configurar o .xinitrc (OPCIONAL, PARA INICIAR O I3WM PELO STARTX)
+echo exec i3 > ~/.xinitrc
+
+➜ Baixar e instalar Pywall (OPCIONAL, caso queira usar o pywal, instale ele e exporta no seu bashrc ou zshrc)
+pip install --user pywal
+export PATH="${PATH}:${HOME}/.local/bin/" # Jogar no bashrc ou zshrc
+
+# FINALIZADA A INSTALAÇÃO do Arch Linux

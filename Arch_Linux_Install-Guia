@@ -1,174 +1,228 @@
-# Pequeno Tutorial de Instalação PESSOAL do sistema ARCH Linux
-#
-# EU USO ESSE GUIA PARA MEU USO PRÓPRIO (SEI O QUE ESTOU FAZENDO) NÃO ME RESPONSABILIZO POR NADA.
-# UM GUIA DE INSTALAÇÃO DO ARCH, RECOMENDO LER A WIKI OFICIAL DA DISTRO, NÃO ME RESPONSABILIZO POR DANDOS
-# WIKI: https://wiki.archlinux.org/index.php/Installation_guide_(Portugu%C3%AAs)
+# Meu guia particular de instalação do Arch linux. UTILIZE-O POR SUA CONTA E RISCO OU, SE PREFERIR, siga o guia:
+# WIKI: https://wiki.archlinux.org/index.php/Installation_guide_(Português)
 
-➜ Layout teclado (ABNT2)
-loadkeys br-abnt2
+1 - Teclado:
+# localectl list-keymaps | grep br
+	br-abnt
+	br-abnt2
+	br-latin1-abnt2
+	br-latin1-us
+# loadkeys br-abnt2
+OU
+# setxkbmap -model abnt2 -layout br -variant abnt2
+OU
+# systemctl set-x11-keymap br-abnt2
 
-➜ Mudar o tamanho da fonte (OPCIONAL)
-setfont lat4-19
+2 - Internet:
+# ip a
+→ Para WIFI:
+# iwctl
+# device list
+# station wlan0 scan
+# station wlan0 get-networks
+# station wlan0 connect <nome>
+# exit
 
-➜ Mudar idioma da instalação (OPCIONAL)
-nano /etc/locale.gen
+3 - Mirrors:
+# pacman -Syyy
+# pacman -S reflector
+# reflector -c Brazil -a 6 –sort rate –save /etc/pacman.d/mirrorlist
+OU
+# sudo reflector --latest 5 --age 2 --fastest 5 --protocol https --sort rate --save /etc/pacman.d/mirrorlist && cat /etc/pacman.d/mirrorlist 
+# pacman -Syyy
+# timedatectl set-ntp true
 
-➜ Descomentar a linha:
-#pt_BR.UTF-8
+4 - Particionamento:
+# lsblk
+# cfdisk /dev/sda
+	/mnt/boot OU /mnt/efi	512Mb		boot,esp
+	/				o restante
+  
+5 – Formatações:
+# mkfs.vfat -F32 /dev/sda1 (Formatação em UEFI)
+# mkfs.btrfs -f /dev/sdaX (Formatação em BTRFS)
+# mkfs.ext4 /dev/sda2 (Formatação em Ext4)
 
-➜ Execute os comandos:
-locale-gen
-export LANG=pt_BR.UTF-8
+6 – Montar partições:
+# mount /dev/sda2 /mnt 			(Montar root)
+# mkdir -p /mnt/boot/efi
+# mount /dev/sda1 /mnt/boot/efi 	(Montar UEFI)
+# lsblk
 
-➜ Atualizar base de dados
-pacman -Syy
+7 – Instalar pacotes base:
+# pacstrap /mnt base linux linux-firmware vim nano amd-ucode (ou intel-ucode)
+OU
+# pacstrap /mnt base dhcpcd neovim linux-firmware base-devel
 
-➜ Suporte para chaves (OPCIONAL)
-pacman -S archlinux-keyring
+8 – Fstab:
+# genfstab -U /mnt » /mnt/etc/fstab 	 (define por UUID)
+OU
+# genfstab -L /mnt >> /mnt/etc/fstab	 (define por labels)
 
-➜ Separar as partições
-cfdisk
+9 – Mudar para o chroot:
+# arch-chroot /mnt
 
-➜ Formatar as partições
-mkfs.vfat -F32 # Formatar BOOT UEFI
-mkfs.ext4 # Formatar partição
-mkswpap # Formatar swap (caso tenha)
+10 – Swapfile:
+# dd if=/dev/zero of=/swapfile bs=1G count=2 status=progresss
+# chmod 600 /swapfile
+# mkswap /swapfile
+# swapon /swapfile
+# vim /swapfile
+	/swapfile		none		swap		defaults	0 0
 
-➜ Montar partições
-mount # Montar as partições
-swapon # Montar swap (caso tenha)
-mkdir -p /mnt/boot/efi && mount /dev/sdaX /mnt/boot/efi
+11 – Definir o fuso horário e setar o teclado do sistema:
+# timedatectl list-timezones | grep Brazil
+# ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+# hwclock --systohc
+# vim /etc/locale.gen
+	Descomentar a linha: #pt_BR.UTF-8
+# locale-gen
+# echo LANG=pt_BR.UTF-8 > /etc/locale.conf
+# export LANG=pt_BR.UTF-8
+# echo KEYMAP=br-abnt2 > /etc/vconsole.conf
 
-➜ Instalar sistema base
-pacstrap /mnt base base-devel linux-firmware dhcpcd nano vim  - (base-devel é opcional, mas eu recomendo instalar para pode usar os pacotes de compilação)
+12 – Definir o hostname (nome da máquina) e host:
+# echo jarwis > /etc/hostname
+# vim /etc/hosts
+	127.0.0.1	localhost
+	::1		localhost
+	127.0.1.1	jarwis.localdomain	jarwis
 
-➜ Gerar FSTAB
-genfstab -p /mnt >> /mnt/etc/fstab
+13 – Senha do root:
+# passwd
 
-➜ Entrar no chroot
-arch-chroot /mnt
+14 – Grub e primeiros pacotes:
+# pacman -S grub efibootmgr (somente para UEFI) base-devel linux-headers networkmanager (ou dhcpcd) network-manager-applet dialog mtools dosfstools bluez bluez-utils cups pulseaudio alsa-utils pulseaudio-alsa pavucontrol reflector git xdg-utils xdg-user-dirs bash-completion os-prober (se tiver outro sistema)
+# grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB --recheck						→ Somente UEFI
+# grub-install --target=i386-pc	 /dev/sda	→ Somente MBR
+# grub-mkconfig -o /boot/grub/grub.cfg
 
-# Escolha suas opções
+OBSERVAÇÕES:
+i) Se utilizou formatação BTRFS:
+Btrfs-progs:
+# pacman -S btrfs-progs –noconfirm
 
-# INTERNET
-# OPÇÃO 1 - DHCPCD
-pacman -S dhcpcd
+ii) Se utilizou dhcpcd:
+Habilitar rede dhcpcd:
+# systemctl enable dhcpcd
+
+iii) Se quiser outras opções de kernel:
+Baixar kernels (sua preferência):
+# pacman -S linux linux-headers → Kernel Stable (default)
+# pacman -S linux-hardened linux-hardened-headers → Kernel focado na segurança
+# pacman -S linux-lts linux-lts-headers → Kernel a longo prazo
+# pacman -S linux-zen linux-zen-headers → Kernel focado em desempenho
+
+iv) Initramfs:
+Creating a new initramfs is usually not required, because mkinitcpio was run on installation of the kernel package with pacstrap. 
+Porém, se alterou o /etc/mkinitcpio.conf, como na linha 7 deste arquivo:
+7 MODULES=(amdgpu)
+#  mkinitcpio -P	→ Precisa dar esse comando.
+
+v) Se utilizou dhcpcd:
 systemctl enable dhcpcd
 
-# Opção 2 - NetworkManager
-pacman -S networkmanager
-systemctl enable NetworkManager
+15 – Habilitando serviços do sistema:
+# systemctl enable NetworkManager	→ SE não for usar o dhcpcd
+# systemctl enable bluetooth
+# systemctl enable org.cups.cupsd
 
-# EDITORES
-# OPÇÃO 1 - VIM EDITOR
-pacman -S vim
+16 – Criando usuário:
+# useradd -m -g users -G wheel,storage,power,network,audio,video,daemon,dbus,disk,lp,optical,input,games,rfkill,scanner -s /bin/bash USER
+# passwd USER
+# EDITOR=vim visudo
+	9  Defaults env_reset,pwfeedback 	→ Acrescentar a linha e descomentar:
+	82 # %wheel ALL=(ALL) ALL		→ Descomentar
 
-OBS: Se já colocou o editor no pacstrap, não precisa baixa-lo novamente.
+17 – Reboot do sistema (retire a mídia):
+# exit
+# umount -a
+# reboot
 
-# OPÇÃO 2 - NANO EDITOR
-pacman -S nano
+18 – Internet novamente, agora dentro do sistema instalado:
+$ sudo pacman -Syy openssh
+$ sudo systemctl start sshd
+$ sudo systemctl enable sshd
+$ ip a
+	Verificar o ip de acesso à internet
+Ir para o terminal remoto e:
+$ ssh eldermf@192.168.122.127
+	→?yes
+	→passwd:<senha>
+$ nmtui
+	<ativar conexão>
 
-➜ Setar o fuso horário do sistema (OPCIONAL)
-ln -sf /usr/share/zoneinfo/America/Recife /etc/localtime
+19 – Editando o /etc/pacman.conf:
+# vim /etc/pacman.conf
+Descomentar linhas: 
+	#[multilib]
+	#Include = /etc/pacman.d/mirrorlist
+	
+Deixar o restante assim: 
+	22 UseDelta
+	34 ShowSize
+	35 Color
+	36 TotalDownload
+	37 CheckSpace 
+	38 VerbosePkgLists
+	39 ILoveCandy 
+# pacman -Syyyu
 
-➜ Setar o horário no sistema
-hwclock --systohc
+20 – YAY:
+$ mkdir -p .pkgs
+$ cd .pkgs 
+$ git clone https://aur.archlinux.org/yay.git
+$ cd yay 
+$ makepkg -si
 
-➜ Time Date
-timedatectl set-ntp true
+21 – Refresh no pacman.conf:
+$ sudo pacman-key --init
+$ sudo pacman-key --populate archlinux 
+$ sudo pacman -Syyu
+$ yay -Syyua 
 
-➜ Mudando o idioma do SISTEMA (OPCIONAL)
-vim /etc/locale.gen
+22 – Graphics driver e alguns pacotes para arquivos:
+$ sudo pacman -S xf86-video-qxl
+$ sudo pacman -S xf86-video-intel (intel) xf86-video-amdgpu (amd) nvidia nvidia-utils (para nvidia OU xf86-video-nouveau) xf86-input-synaptics (para notebooks)
+$ sudo pacman -S xorg xorg-server xorg-apps xorg-xinit mesa lib32-mesa binutils pacman-contrib gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb libmtp ntfs-3g xclip usbutils 
 
-➜ Descomentar linha:
-#pt_BR.UTF-8
+OBSERVAÇÕES:
+i) Se possui placa AMD antiga:
+$ sudo pacman -S xf86-video-ati –noconfirm
+ii) Alternativa ao X.org:
+$ sudo pacman -S waylandy xorg-server-xwayland –noconfirm
+iii) Subir o bspwm:
+$ echo exec bspwm > ~/.xinitrc && startx (sem o lightdm)
+iv) Se for usar o lightdm:
+$ sudo pacman -S lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings 
+OU
+$ sudo pacman -S lightdm lightdm-webkit2-greeter 
+Para setar o “greeter” como default:
+$ sudo vim /etc/lightdm/lightdm.conf
+[Seat:*]
+...
+greeter-session=lightdm-gtk-greeter
+...
+$ sudo systemctl enable lightdm
 
-➜ Executar comandos
-locale-gen
-echo LANG=pt_BR.UTF-8 > /etc/locale.conf
-export LANG=pt_BR.UTF-8
+23 – Alguns pacotes que utilizo:
+$ sudo pacman -S firefox-i18n-pt-br unzip unrar p7zip neofetch leafpad
+$ sudo pacman -S viewnior gpicview guvcview gimp inkscape kolourpaint mcomix atril pdfarranger 
+$ yay gimp-plugin-saveforweb
+$ sudo pacman -S ffmpeg mencoder mplayer mpv baka-mplayer vlc simplescreenrecorder libdvdcss libdvdread libdvdnav imagemagick w3m
+$ sudo pacman -S chromium libreoffice-fresh-pt-br qbittorrent telegram-desktop (ou kotatogram-desktop ou kotatogram-desktop-bin)
+$ sudo pacman -S java-runtime (jre8-open-jdk) 
+$ sudo pacman -S java-enviroment (jdk8-open-jdk)
+$ sudo pacman -S ranger pcmanfm thunar thunar-volman thunar-archive-plugin thunar-media-tags-plugin
+$ xdg-user-dirs-update
+$ sudo pacman -S tumbler ffmpegthumbnailer ffmpegthumbs
+$ yay -S pamac-aur pamac-tray-appfinder polkit-gnome
+$ sudo pacman -S xfce4-terminal terminator gmrun exo xfburn xfce4-appfinder
+$ sudo pacman -S gpart gparted exfat-utils udftools 
 
-➜ Configurar o teclado para subir em PT-BR
-echo KEYMAP=br-abnt2 > /etc/vconsole.conf
-
-➜ Colocar nome host
-echo LOCALHOST > /etc/hostname
-
-➜ Baixar kernels (sua preferência)
-pacman -S linux linux-headers ➜ Kernel Stable (default)
-pacman -S linux-hardened linux-hardened-headers ➜ Kernel focado na segurança
-pacman -S linux-lts linux-lts-headers ➜ Kernel a longo prazo
-pacman -S linux-zen linux-zen-headers ➜ Kernel focado em desempenho
-
-➜ Configurar repositório
-vim /etc/pacman.conf
-
-➜ Descomentar linha:
-#multilib
-#incluide
-
-➜ Sincronizar repositórios
-pacman -Syy
-
-➜ Senha root
-passwd
-
-➜ Criar user
-useradd -m -g users -G wheel,audio,video,daemon,dbus,disk,rfkill,games,power,lp,optical,scanner,storage,input -s /bin/bash USER
-
-➜ Criar senha para o user
-passwd USER
-
-➜ Editar prioridade SUDO
-vim /etc/sudoers
-
-➜ Descomentar linha:
-# %wheel ALL=(ALL) ALL
-
-➜ Baixar e instalar o GRUB
-# LEGACY
-pacman -S grub
-grub-install /dev/sda
-----------------------------------
-# UEFI
-pacman -S grub efibootmgr
-grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Grub_Arch --recheck
-
-➜ Caso tenha outro SO instalado (ntfs-3g é bom para reconhecer o windows)
-pacman -S os-prober ntfs-3g --noconfirm
-
-➜ Atualize o GRUB
-grub-mkconfig -o /boot/grub/grub.cfg
-
-# REBOOTA O SISTEMA E TIRA A MIDIA
-
-# Notebooks para se conectar a internet via wifi usa o comando:
-nmtui
-
-➜ Identificar a VGA:
-lspci | grep VGA
-
-➜ Baixar GPU
-➜ Radeon - GPUs mais antigas (AMD)
-sudo pacman -S xf86-video-ati
-
-➜ AMDGPU - GPUs mais novas (AMD)
-sudo pacman -S xf86-video-amdgpu
-
-➜ Nvidia
-sudo pacman -S nvidia
-
-➜ GPU INTEL
-sudo pacman -S xf86-video-intel
-
-➜ GPU Genérico
-sudo pacman -S xf86-video-vesa
-
-➜ GPU VB - Virtual Box
-sudo pacman -S virtualbox-guest-utils
-
-➜ Baixar alguns pacotes (Xorg-xinit é necessario se quiser iniciar o sistema pelo o startx)
-sudo pacman -S xorg xorg-xinit ttf-fira-code noto-fonts-emoji pulseaudio-alsa pavucontrol
+############################################
+######### Instalando De's ou WM's ##########
+############################################
 
 ➜ Baixando i3wm
 sudo pacman -S i3
@@ -230,4 +284,4 @@ echo exec i3 > ~/.xinitrc
 pip install --user pywal
 export PATH="${PATH}:${HOME}/.local/bin/" # Jogar no bashrc ou zshrc
 
-# FINALIZADA A INSTALAÇÃO do Arch Linux
+# FIM DA INSTALAÇÃO do ARCH LINUX
